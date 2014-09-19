@@ -24,6 +24,7 @@ class Card
   def initialize(rank, suit)
     @rank = rank
     @suit = suit
+    @is_visible = false
   end
 
   def value
@@ -37,30 +38,27 @@ class Deck
   def initialize(num_cards)
     @num_cards = num_cards
     @is_shuffled = false
-    @card = [1..num_cards]
+    @cards = []
+    @num_cards.times { |n| @cards[n] = Card.new(n, "x") }
   end
 
   def empty?
-    return @card.empty?
+    return @cards.empty?
   end
 
   def has_cards?(n)
-    return @card.size >= n
+    return @cards.size >= n
   end
 
   def shuffle!
     if (!is_shuffled)
-       @card.shuffle!
+       @cards.shuffle!
        @is_shuffled = true
     end
   end
 
-  def pop(n)
-    return @card.pop(n)
-  end
-
   def pop
-    return self.pop(1)
+    return @cards.pop
   end
 end
 
@@ -72,17 +70,22 @@ class Player
     @is_dealer = is_dealer
     @strategy = strategy
     @money = money
-    @hand = Array.new
+    @hand = []
   end
 
   def place_bet
     bet = @money.zero? ? 0 : 1
     self.exchange_money(-bet)
+    return bet
   end
 
   def show_hand
     sum = 0
-    return @hand.each { |n| sum += @hand[n] }
+    return @hand.size { |h| sum += @hand[h].rank }
+  end
+
+  def destroy_hand
+    @hand = []
   end
 
   def save_card(card)
@@ -116,19 +119,22 @@ class Game
     # create players
     while @deck.has_cards?(@players.size)
       # each player gets a card
-      @players.each{ |p| @players[p].save_card(@deck.pop) }
+      @players.each{ |player| player.save_card(@deck.pop) }
       # each player places a bet
-      @players.each{ |p| @pot += @players[p].place_bet }
+      @players.each{ |player| @pot += player.place_bet }
       # players reveal cards
-      @players.each{ |p| @table.push(@players[p].show_hand)}
+      @players.each{ |player|
+        @table.push(player.show_hand)
+        player.destroy_hand
+      }
       # winner collects pot
-      @player[ @table.each_with_index.max ].exchange_money(@pot)
+      @players[ @table.index(@table.max) ].exchange_money(@pot) 
       @pot = 0
     end
   end
 
   def results
-    @players.each
+    return @players.inspect
   end
 
   def to_s
@@ -149,4 +155,4 @@ print g.to_s + "\n\n\n"
 puts "starting game"
 g.play
 puts "game over"
-print g.to_s + "\n\n\n"
+print g.results + "\n\n\n"
