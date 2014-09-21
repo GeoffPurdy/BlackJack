@@ -189,7 +189,7 @@ class Game
         score > @BLACKJACK ? @table.push(0) : @table.push(player.show_hand)
         player.destroy_hand
       }
-      # winner collects pot
+      # winner collects pot; taking index works only b/c dealer goes first
       @players[ @table.index(@table.max) ].exchange_money(@pot)
       @pot = 0
     end
