@@ -36,6 +36,10 @@ class Deck
   attr_reader :is_shuffled
 
   def initialize(num_cards)
+    @CARD_VALUES = [1,2,3,4,5,6,7,8,9,10,10,10,10] #A,1,2,3,4,5,6,7,8,9,10,J,Q,K
+    # populate the deck
+    @deck_values = []
+    (num_cards / @CARD_VALUES.size).times do @deck_values.push(*@CARD_VALUES) end
     @num_cards = num_cards
     @is_shuffled = false
     @cards = []
@@ -62,8 +66,58 @@ class Deck
   end
 end
 
+class Strategy
+  # trivial implementation of interface
+  def bet
+    return 1
+  end
+  def hit?
+    return false
+  end
+end
+
+class DealerStrategy < Strategy
+  def bet
+    return 0
+  end
+end
+
+class BrainlessStrategy < Strategy
+  def bet
+    return 2
+  end
+  def hit?
+    return true
+  end
+end
+
+class PunyHumanStrategy < Strategy
+  def bet
+    @amt = nil
+    puts "How much would you like to bet?"
+    while (@amt and @amt.to_i != 0 and "0" != @amt)
+      @amt = gets.chomp
+    end
+    return @amt.to_i
+  end
+
+  def hit?
+    @ans = nil
+    while ('n' != @ans or 'y' != @ans)
+      p "Would you like to hit? (y/n): "
+      @ans = 'y' # gets.chomp.downcase
+      p "You answered: " + @ans
+    end
+    p ('n' != @ans or 'y' != @ans) + " exited hit? while loop"
+
+#    return 'y' == @ans ? true : false
+     return false # FIXME remove
+  end
+end
+
+
 class Player
-  attr_reader :is_dealer
+  attr_reader   :is_dealer
   attr_accessor :money
 
   def initialize(is_dealer, strategy, money)
@@ -74,9 +128,13 @@ class Player
   end
 
   def place_bet
-    bet = @money.zero? ? 0 : 1
+    bet = @strategy.bet
     self.exchange_money(-bet)
     return bet
+  end
+
+  def hit?
+    return @strategy.hit?
   end
 
   def show_hand
@@ -98,17 +156,19 @@ class Player
 end
 
 class Game
-  def initialize(num_players)
+  def initialize(blackjack, num_players)
+    @BLACKJACK = blackjack
+    @CARDS_IN_DECK = 52
     @players = []
-    @deck = Deck.new(52)
+    @deck = Deck.new(@CARDS_IN_DECK)
     @pot = 0
     @table = []
 
     num_players.times { |n|
       if(0 == n) # first player is arbitrarily dealer
-        @players[n] = Player.new(true, "DealerStrategy", 100)
+        @players[n] = Player.new(true, DealerStrategy.new, 100)
       else
-        @players[n] = Player.new(true, "DumbStrategy", 100)
+        @players[n] = Player.new(true, PunyHumanStrategy.new, 100)
       end
     }
 
@@ -122,13 +182,21 @@ class Game
       @players.each{ |player| player.save_card(@deck.pop) }
       # each player places a bet
       @players.each{ |player| @pot += player.place_bet }
-      # players reveal cards
+      # each player hits until stays
       @players.each{ |player|
-        @table.push(player.show_hand)
+        while (player.hit? and player.show_hand < @BLACKJACK) do
+          player.save_card(@deck.pop)
+        end
+      }
+      # each player reveals cards
+      @players.each{ |player|
+        score = player.show_hand
+        # score over blackjack => Busted!
+        score > @BLACKJACK ? @table.push(0) : @table.push(player.show_hand)
         player.destroy_hand
       }
       # winner collects pot
-      @players[ @table.index(@table.max) ].exchange_money(@pot) 
+      @players[ @table.index(@table.max) ].exchange_money(@pot)
       @pot = 0
     end
   end
@@ -149,9 +217,7 @@ class BlackJack
   end
 end
 
-puts "Would you like to play a game of BlackJack?"
-g = Game.new(2)
-print g.to_s + "\n\n\n"
+g = Game.new(21,2)
 puts "starting game"
 g.play
 puts "game over"
