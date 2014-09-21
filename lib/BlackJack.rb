@@ -94,24 +94,18 @@ end
 class PunyHumanStrategy < Strategy
   def bet
     @amt = nil
-    puts "How much would you like to bet?"
-    while (@amt and @amt.to_i != 0 and "0" != @amt)
-      @amt = gets.chomp
-    end
-    return @amt.to_i
+    puts "Puny Human bets 10.  House rules."
+#    while (@amt and @amt.to_i != 0 and "0" != @amt)
+#      @amt = gets.chomp
+#    end
+    return 10 # @amt.to_i
   end
 
   def hit?
     @ans = nil
-    while ('n' != @ans or 'y' != @ans)
-      p "Would you like to hit? (y/n): "
-      @ans = 'y' # gets.chomp.downcase
-      p "You answered: " + @ans
-    end
-    p ('n' != @ans or 'y' != @ans) + " exited hit? while loop"
-
-#    return 'y' == @ans ? true : false
-     return false # FIXME remove
+    p "Would you like to hit? Type 'y' to hit, anything else to stay: "
+    @ans = gets.chomp.downcase
+    return @ans =~ /^y/
   end
 end
 
